@@ -22,6 +22,7 @@ pnpm build                           # dist/ にバンドル
 | `src/parser.ts` | `// @import` の解析、識別子（型・関数・変数名）の収集、ヘッダ行の除外 |
 | `src/renamer.ts` | リネームマップの構築と適用（文字列リテラル・コメント内は変換しない） |
 | `src/inliner.ts` | リネーム済みコンテンツをセパレータコメントで囲む |
+| `src/resolver.ts` | モジュールパス解決（拡張子省略時に `.pine` → `.pinescript` の順で検索） |
 | `src/builder.ts` | ファイル読み込み・処理フロー制御・出力組み立て |
 | `src/linter.ts` | ビルド可否チェック・リネーム内容の表示・未定義参照の警告 |
 | `src/cli.ts` | Commander による CLIコマンド定義 |
@@ -29,10 +30,11 @@ pnpm build                           # dist/ にバンドル
 ## import 構文
 
 ```pine
-// @import ./path/to/module.pinescript as alias
+// @import ./path/to/module as alias
 ```
 
 - PineScript コメントなので TradingView のパーサには無視される
+- **拡張子は省略可能。** `.pine` → `.pinescript` の順で自動検索。明示した場合はそのまま使用
 - `alias` はリネームプレフィックスになる（例: `alias` → 識別子に `alias_` が付く）
 
 ## リネームルール

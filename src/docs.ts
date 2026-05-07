@@ -24,19 +24,21 @@ Write the following comment anywhere in the main file (conventionally near the
 top, after \`//@version=5\`):
 
 \`\`\`pine
-// @import ./relative/path/to/module.pinescript as <alias>
+// @import ./relative/path/to/module as <alias>
 \`\`\`
 
 Rules:
 - The path is relative to the main file.
+- **Extension is optional.** pinecone looks for \`.pine\` first, then \`.pinescript\`.
+  If the extension is specified explicitly, it is used as-is.
 - \`alias\` must be a valid PineScript identifier (letters, digits, underscores).
 - Each alias must be unique within the file.
 - Multiple imports are allowed.
 
 \`\`\`pine
 //@version=5
-// @import ./killzones.pinescript as kz
-// @import ./structure.pinescript as smc
+// @import ./killzones as kz
+// @import ./structure as smc
 indicator("My Strategy", overlay = true)
 \`\`\`
 
@@ -145,7 +147,7 @@ kz.draw(nyam, high, low, time)
 
 \`\`\`pine
 //@version=5
-// @import ./killzones.pinescript as kz
+// @import ./killzones as kz
 indicator("My Strategy", overlay = true)
 
 // kz module state is already running via its own inlined code.

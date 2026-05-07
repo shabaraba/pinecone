@@ -1,7 +1,8 @@
-import { readFile, access } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import { parseImports, collectIdentifiers } from './parser.js';
 import { buildRenameMap } from './renamer.js';
+import { resolveModulePath } from './resolver.js';
 
 export interface LintOptions {
   input: string;
@@ -42,14 +43,13 @@ export async function lint(options: LintOptions): Promise<LintResult> {
   console.log(`Found ${imports.length} import(s)\n`);
 
   for (const imp of imports) {
-    const modulePath = resolve(inputDir, imp.filePath);
     console.log(`  import ${imp.filePath} as ${imp.alias}`);
 
-    // Check file exists
+    let modulePath: string;
     try {
-      await access(modulePath);
-    } catch {
-      const msg = `File not found: ${imp.filePath}`;
+      modulePath = await resolveModulePath(inputDir, imp.filePath);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
       errors.push(msg);
       console.log(`  ✗ ${msg}\n`);
       continue;

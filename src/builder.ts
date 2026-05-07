@@ -3,6 +3,7 @@ import { resolve, dirname } from 'node:path';
 import { parseImports, collectIdentifiers, filterHeaderLines } from './parser.js';
 import { buildRenameMap, applyRenameMap } from './renamer.js';
 import { createInlineBlock } from './inliner.js';
+import { resolveModulePath } from './resolver.js';
 
 export interface BuildOptions {
   input: string;
@@ -24,7 +25,7 @@ export async function build(options: BuildOptions): Promise<void> {
 
   const inlineBlocks: string[][] = [];
   for (const imp of imports) {
-    const modulePath = resolve(inputDir, imp.filePath);
+    const modulePath = await resolveModulePath(inputDir, imp.filePath);
     const moduleContent = await readFile(modulePath, 'utf-8');
     const moduleLines = moduleContent.split('\n');
 

@@ -1,0 +1,1 @@
+{"hooks":{"PreToolUse":[{"matcher":".*","hooks":[{"command":"/Users/shaba/workspace/nvim-plugins/vibing.nvim/bin/hooks/pre-tool-use.sh","timeout":120,"type":"command"}]}]}}

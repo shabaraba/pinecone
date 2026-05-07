@@ -1,7 +1,0 @@
-//@version=5
-// @import ./killzone_lib.pinescript as kz
-indicator('My Strategy', overlay = true)
-
-// killzone_lib の内容が kz_ プレフィックスでインライン展開される
-// kz.plot(...) → kz_plot(...) に変換される
-// type KZ     → type kz_KZ に変換される

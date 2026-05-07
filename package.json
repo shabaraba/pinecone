@@ -1,5 +1,5 @@
 {
-  "name": "pinecone",
+  "name": "@shabaraba/pinecone",
   "version": "0.1.0",
   "type": "module",
   "bin": {

@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { build } from './builder.js';
 import { lint } from './linter.js';
+import { DOCS } from './docs.js';
 
 const program = new Command();
 
@@ -34,5 +35,10 @@ program
       process.exit(1);
     }
   });
+
+program
+  .command('docs')
+  .description('Print the LLM development guide for pinecone')
+  .action(() => console.log(DOCS));
 
 program.parse();

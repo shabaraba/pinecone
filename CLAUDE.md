@@ -15,7 +15,7 @@ pnpm build                           # dist/ にバンドル
 
 ## アーキテクチャ
 
-処理の流れ: `cli.ts` → `builder.ts` → `parser.ts` / `renamer.ts` / `inliner.ts`
+処理の流れ: `cli.ts` → `builder.ts` / `linter.ts` → `parser.ts` / `renamer.ts` / `inliner.ts`
 
 | ファイル | 責務 |
 |---|---|
@@ -23,6 +23,7 @@ pnpm build                           # dist/ にバンドル
 | `src/renamer.ts` | リネームマップの構築と適用（文字列リテラル・コメント内は変換しない） |
 | `src/inliner.ts` | リネーム済みコンテンツをセパレータコメントで囲む |
 | `src/builder.ts` | ファイル読み込み・処理フロー制御・出力組み立て |
+| `src/linter.ts` | ビルド可否チェック・リネーム内容の表示・未定義参照の警告 |
 | `src/cli.ts` | Commander による CLIコマンド定義 |
 
 ## import 構文

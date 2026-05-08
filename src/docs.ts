@@ -28,12 +28,14 @@ top, after \`//@version=5\`):
 \`\`\`
 
 Rules:
-- The path is relative to the main file.
+- The path is relative to the importing file.
 - **Extension is optional.** pinecone looks for \`.pine\` first, then \`.pinescript\`.
   If the extension is specified explicitly, it is used as-is.
 - \`alias\` must be a valid PineScript identifier (letters, digits, underscores).
 - Each alias must be unique within the file.
 - Multiple imports are allowed.
+- **Modules may import other modules** (nested imports). Duplicate modules are
+  inlined only once; the same alias must be used consistently across all files.
 
 \`\`\`pine
 //@version=5
@@ -100,19 +102,62 @@ stay consistent after inlining.
 
 ---
 
-## Calling module functions from the main file
+## Calling module members from the importing file
 
-In the main file, use \`alias.identifier\` syntax to reference anything from the
-module. During build, \`alias.X\` is rewritten to \`alias_X\`:
+Use \`alias::identifier\` to reference any member exported by a module.
+During build, \`alias::X\` is rewritten to \`alias_X\`:
 
 \`\`\`pine
 // main file
-kz.plot(high, low, time, color.blue)   →   kz_plot(high, low, time, color.blue)
-kz.MyType                              →   kz_MyType
+kz::plot(high, low, time, color.blue)   →   kz_plot(high, low, time, color.blue)
+kz::MyType                              →   kz_MyType
+var kz::KZ myKz = kz::KZ.new()         →   var kz_KZ myKz = kz_KZ.new()
 \`\`\`
 
-This applies to any \`alias.<identifier>\` pattern — function calls, type names,
-variable references.
+Using \`::\` instead of \`.\` ensures pinecone transforms never conflict with
+PineScript's built-in dot-notation (e.g. \`math.abs\`, \`array.new\`).
+
+The same \`::\` syntax works inside module files when referencing a nested import:
+
+\`\`\`pine
+// module_a.pinescript
+// @import ./common as c
+
+method doWork(MyType self) =>
+    c::helper(self.value)   →   c_helper(self.value)
+\`\`\`
+
+---
+
+## Nested imports
+
+Modules may import other modules. pinecone resolves the full dependency graph,
+deduplicates shared modules, and always inlines dependencies before the modules
+that depend on them.
+
+\`\`\`pine
+// common.pinescript  (no imports)
+type Shared
+    float v
+
+// module_a.pinescript
+// @import ./common as c
+method compute(MyType self) => c::Shared.new()
+
+// main.pinescript
+// @import ./common as c
+// @import ./module_a as a
+indicator("Demo", overlay = true)
+var c::Shared sh = c::Shared.new()
+a::compute(sh)
+\`\`\`
+
+**Rules for nested imports:**
+- The same module file must use the **same alias** everywhere it is imported.
+  Using different aliases for the same file is an error.
+- Circular imports (A → B → A) are detected and reported as errors.
+- A shared dependency is inlined exactly once (deduplication).
+- Inlining order is determined by topological sort (dependencies first).
 
 ---
 
@@ -150,9 +195,7 @@ kz.draw(nyam, high, low, time)
 // @import ./killzones as kz
 indicator("My Strategy", overlay = true)
 
-// kz module state is already running via its own inlined code.
-// To reference its type in the main file:
-// var kz.KZ myKz = kz.KZ.new()  →  var kz_KZ myKz = kz_KZ.new()
+var kz::KZ myKz = kz::KZ.new()
 \`\`\`
 
 ### Output after \`pinecone build main.pinescript\`
@@ -180,6 +223,8 @@ var kz_KZ kz_kz = kz_KZ.new()
 kz_nyam = not na(time(timeframe.period, "0830-1100", "UTC-5"))
 kz_kz.kz_draw(kz_nyam, high, low, time)
 // --- end inline ---
+
+var kz_KZ myKz = kz_KZ.new()
 \`\`\`
 
 ---
@@ -196,18 +241,21 @@ kz_kz.kz_draw(kz_nyam, high, low, time)
 
 3. **Expose via method or function.** If the main file needs to drive the
    module's logic with different parameters, define a \`method\` or function and
-   call it as \`alias.funcName(...)\` in the main file.
+   call it as \`alias::funcName(...)\` in the main file.
 
 4. **Avoid name collisions.** All identifiers are prefixed, so collisions
    between modules are rare. However, avoid single-letter identifiers like
    \`b\`, \`i\` at the top level of a module — they may conflict with similar
    names in other modules after prefixing.
 
-5. **Limitations to be aware of:**
+5. **Do not name local variables the same as import aliases.** If a module
+   imports \`common\` as \`c\` and also has a local variable named \`c\`, the
+   renaming behaviour is undefined. Use distinct names.
+
+6. **Limitations to be aware of:**
    - \`indicator()\` must fit on one line (multi-line calls shift the insertion point).
    - Tuple assignment \`[a, b] = func()\` — left-side variables are not collected
      for renaming.
-   - Nested imports (a module importing another module) are not yet supported.
 
 ---
 
@@ -216,7 +264,8 @@ kz_kz.kz_draw(kz_nyam, high, low, time)
 Always run \`pinecone lint\` first to verify:
 - All imported files exist.
 - Rename preview looks correct.
-- No \`alias.X\` references in the main file point to undefined identifiers.
+- No \`alias::X\` references in the main file point to undefined identifiers.
+- Nested imports are shown per module.
 
 \`\`\`
 pinecone lint main.pinescript

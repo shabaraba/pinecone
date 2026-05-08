@@ -9,3 +9,10 @@ export interface ModuleIdentifiers {
   functions: string[];
   vars: string[];
 }
+
+export interface ResolvedModuleNode {
+  absolutePath: string;
+  alias: string;
+  content: string;
+  ownImports: ImportDeclaration[];
+}

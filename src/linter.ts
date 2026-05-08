@@ -33,7 +33,6 @@ export async function lint(options: LintOptions): Promise<LintResult> {
     return { ok: true, errors: [] };
   }
 
-  // Check duplicate aliases
   const aliases = imports.map(i => i.alias);
   const dupes = aliases.filter((a, i) => aliases.indexOf(a) !== i);
   for (const dupe of [...new Set(dupes)]) {
@@ -60,11 +59,18 @@ export async function lint(options: LintOptions): Promise<LintResult> {
     const ids = collectIdentifiers(moduleLines);
     const renameMap = buildRenameMap(ids, imp.alias);
 
+    const nestedImports = parseImports(moduleContent);
+    if (nestedImports.length > 0) {
+      console.log(`\n  Nested imports (${nestedImports.length}):`);
+      for (const ni of nestedImports) {
+        console.log(`    ${ni.alias} ← ${ni.filePath}`);
+      }
+    }
+
     printSection('Types', ids.types, imp.alias);
     printSection('Functions', ids.functions, imp.alias);
     printSection('Variables', ids.vars, imp.alias);
 
-    // Show alias.X → alias_X transforms found in main file
     const aliasRefs = findAliasRefs(mainContent, imp.alias);
     if (aliasRefs.length > 0) {
       console.log(`\n  Transforms in main file:`);
@@ -75,7 +81,7 @@ export async function lint(options: LintOptions): Promise<LintResult> {
 
     const unusedAliases = findUnusedAliasRefs(mainContent, imp.alias, renameMap);
     for (const name of unusedAliases) {
-      console.log(`  ⚠ ${imp.alias}.${name} referenced in main but not defined in module`);
+      console.log(`  ⚠ ${imp.alias}::${name} referenced in main but not defined in module`);
     }
 
     console.log();
@@ -106,13 +112,12 @@ interface AliasRef {
 }
 
 function findAliasRefs(content: string, alias: string): AliasRef[] {
-  const re = new RegExp(`\\b${alias}\\.([a-zA-Z_]\\w*)`, 'g');
+  const re = new RegExp(`\\b${alias}::([a-zA-Z_]\\w*)`, 'g');
   const seen = new Set<string>();
   const refs: AliasRef[] = [];
   for (const m of content.matchAll(re)) {
-    const key = m[0];
-    if (!seen.has(key)) {
-      seen.add(key);
+    if (!seen.has(m[0])) {
+      seen.add(m[0]);
       refs.push({ original: m[0], renamed: `${alias}_${m[1]}` });
     }
   }
@@ -122,13 +127,12 @@ function findAliasRefs(content: string, alias: string): AliasRef[] {
 function findUnusedAliasRefs(
   content: string,
   alias: string,
-  renameMap: Map<string, string>
+  renameMap: Map<string, string>,
 ): string[] {
-  const re = new RegExp(`\\b${alias}\\.([a-zA-Z_]\\w*)`, 'g');
+  const re = new RegExp(`\\b${alias}::([a-zA-Z_]\\w*)`, 'g');
   const unused: string[] = [];
   for (const m of content.matchAll(re)) {
-    const funcName = m[1];
-    if (!renameMap.has(funcName)) unused.push(funcName);
+    if (!renameMap.has(m[1])) unused.push(m[1]);
   }
   return [...new Set(unused)];
 }

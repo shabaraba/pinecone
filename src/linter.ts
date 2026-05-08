@@ -3,6 +3,7 @@ import { resolve, dirname } from 'node:path';
 import { parseImports, collectIdentifiers } from './parser.js';
 import { buildRenameMap } from './renamer.js';
 import { resolveModulePath } from './resolver.js';
+import { findAliasConflicts } from './aliasCheck.js';
 
 export interface LintOptions {
   input: string;
@@ -37,6 +38,22 @@ export async function lint(options: LintOptions): Promise<LintResult> {
   const dupes = aliases.filter((a, i) => aliases.indexOf(a) !== i);
   for (const dupe of [...new Set(dupes)]) {
     errors.push(`Duplicate alias: "${dupe}"`);
+  }
+
+  const aliasConflicts = await findAliasConflicts(mainContent, inputDir);
+  if (aliasConflicts.length > 0) {
+    console.log('Alias conflicts (build will fail):\n');
+    for (const conflict of aliasConflicts) {
+      console.log(`  ✗ ${conflict.modulePath}`);
+      for (const u of conflict.usages) {
+        console.log(`      "${u.alias}"  ←  ${u.importedBy}`);
+      }
+      errors.push(
+        `Alias conflict in "${conflict.modulePath}": ` +
+          conflict.usages.map(u => `"${u.alias}" (${u.importedBy})`).join(' vs '),
+      );
+    }
+    console.log();
   }
 
   console.log(`Found ${imports.length} import(s)\n`);

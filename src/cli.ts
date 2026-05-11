@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { build } from './builder.js';
 import { lint } from './linter.js';
 import { DOCS } from './docs.js';
+import { startLsp } from './lsp.js';
 
 const program = new Command();
 
@@ -40,5 +41,10 @@ program
   .command('docs')
   .description('Print the LLM development guide for pinecone')
   .action(() => console.log(DOCS));
+
+program
+  .command('lsp')
+  .description('Start the PineScript LSP server (stdio)')
+  .action(() => startLsp());
 
 program.parse();

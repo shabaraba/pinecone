@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.0](https://github.com/shabaraba/pinecone/compare/v1.0.0...v1.1.0) (2026-05-12)
+
+
+### Features
+
+* add PineScript LSP server with go-to-definition support ([973bced](https://github.com/shabaraba/pinecone/commit/973bcedaaed6826572b33ae2368a496d82e6c293))
+* add transpile command for PineScript to MQL5 EA conversion ([3cce1c2](https://github.com/shabaraba/pinecone/commit/3cce1c237a3d07d980dc4e68cf39bac3c149bcd9))
+
 ## 1.0.0 (2026-05-08)
 
 

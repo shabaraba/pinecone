@@ -26,6 +26,43 @@ pnpm build                           # dist/ にバンドル
 | `src/builder.ts` | ファイル読み込み・処理フロー制御・出力組み立て |
 | `src/linter.ts` | ビルド可否チェック・リネーム内容の表示・未定義参照の警告 |
 | `src/cli.ts` | Commander による CLIコマンド定義 |
+| `src/lsp.ts` | LSPサーバー起動・機能登録（definition / hover / references） |
+| `src/lsp-server.ts` | LSPサーバーエントリポイント（stdio経由で起動） |
+| `src/lsp/definition.ts` | go-to-definition: `@import` 行・`alias.X` / `alias::X` パターン・型フィールドへのジャンプ |
+| `src/lsp/hover.ts` | hover: `@import` 行上でモジュールの型・関数・変数一覧を表示 |
+| `src/lsp/references.ts` | references: 識別子の全参照をディレクトリ内の `.pine` / `.pinescript` ファイルから検索 |
+| `src/lsp/utils.ts` | LSP共通ユーティリティ（トークン取得・エイリアスマップ構築・定義行検索） |
+
+## LSPサーバー
+
+`pinecone lsp` コマンドで stdio ベースの LSP サーバーを起動できる。
+
+### 対応機能
+
+| 機能 | 動作 |
+|---|---|
+| **go-to-definition** | `// @import` 行 → モジュールファイルの先頭へジャンプ |
+| | `alias.X` / `alias::X` → モジュール内の定義行へジャンプ |
+| | `変数.フィールド` → 型定義のフィールド行へジャンプ |
+| | alias 単体 → インポートファイルへジャンプ |
+| | カレントファイル内の識別子 → 同ファイル内定義へジャンプ |
+| **hover** | `// @import` 行上でモジュールの型・関数・変数の一覧を Markdown 表示 |
+| **references** | カーソル下の識別子の全参照をディレクトリ内 `.pine` / `.pinescript` ファイルから列挙 |
+
+### エディタ設定（Neovim 例）
+
+```lua
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = { 'pine', 'pinescript' },
+  callback = function()
+    vim.lsp.start({
+      name = 'pinecone',
+      cmd = { 'pinecone', 'lsp' },
+      root_dir = vim.fn.getcwd(),
+    })
+  end,
+})
+```
 
 ## import 構文
 

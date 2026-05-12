@@ -1,9 +1,7 @@
-import { readFile, writeFile } from 'node:fs/promises';
-import { resolve, dirname } from 'node:path';
-import { parseImports, collectIdentifiers, filterHeaderLines } from './parser.js';
-import { buildRenameMap, applyRenameMap, applyModuleRefs } from './renamer.js';
-import { createInlineBlock } from './inliner.js';
-import { resolveModuleGraph } from './graph.js';
+import { writeFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { applyModuleRefs } from './renamer.js';
+import { resolveAndExpand } from './expander.js';
 
 export interface BuildOptions {
   input: string;
@@ -11,36 +9,7 @@ export interface BuildOptions {
 }
 
 export async function build(options: BuildOptions): Promise<void> {
-  const inputPath = resolve(options.input);
-  const inputDir = dirname(inputPath);
-  const mainContent = await readFile(inputPath, 'utf-8');
-  const mainLines = mainContent.split('\n');
-
-  const directImports = parseImports(mainContent);
-  const dupes = directImports.map(i => i.alias).filter((a, i, arr) => arr.indexOf(a) !== i);
-  if (dupes.length > 0) throw new Error(`Duplicate import aliases: ${dupes.join(', ')}`);
-
-  const orderedModules = await resolveModuleGraph(mainContent, inputDir);
-
-  const inlineBlocks: string[][] = [];
-  for (const mod of orderedModules) {
-    const moduleLines = mod.content.split('\n');
-    const contentLines = filterHeaderLines(moduleLines);
-
-    // Step 1: resolve this module's own import refs (alias::X → alias_X) before own-rename
-    const modAliases = mod.ownImports.map(i => i.alias);
-    const dealiasedLines = applyModuleRefs(contentLines, modAliases);
-
-    // Step 2: rename this module's own identifiers
-    const ids = collectIdentifiers(moduleLines);
-    const renameMap = buildRenameMap(ids, mod.alias);
-    const renamedLines = applyRenameMap(dealiasedLines, renameMap);
-
-    inlineBlocks.push(createInlineBlock(renamedLines, mod.absolutePath));
-  }
-
-  const allAliases = orderedModules.map(m => m.alias);
-  const hasIndicatorLine = mainLines.some(l => /^(indicator|strategy|library)\s*\(/.test(l.trim()));
+  const { mainLines, inlineBlocks, allAliases, hasIndicatorLine } = await resolveAndExpand(resolve(options.input));
 
   const outputLines: string[] = [];
   let insertionDone = false;

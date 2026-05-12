@@ -33,6 +33,7 @@ pnpm link --global
 ```bash
 pinecone build <input> [-o <output>]   # インライン展開して出力
 pinecone lint  <input>                 # ドライラン：リネーム内容と警告を表示
+pinecone lsp                           # LSPサーバー起動（stdio）
 pinecone docs                          # LLM向け開発ガイドを表示
 ```
 
@@ -101,18 +102,50 @@ method kz_plot(kz_KZ _id, bool _active, float _h, float _l, int _t, color _c) =>
 kz_plot(...)
 ```
 
+## LSP Server
+
+`pinecone lsp` で stdio ベースの LSP サーバーを起動できます。エディタから PineScript ファイルの開発支援機能を利用できます。
+
+| 機能 | 動作 |
+|---|---|
+| **go-to-definition** | `// @import` 行・`alias.X` / `alias::X` パターン・型フィールドへのジャンプ |
+| **hover** | `// @import` 行でモジュールの型・関数・変数の一覧を表示 |
+| **references** | 識別子の全参照をディレクトリ内ファイルから列挙 |
+
+### Neovim 設定例
+
+```lua
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = { 'pine', 'pinescript' },
+  callback = function()
+    vim.lsp.start({
+      name = 'pinecone',
+      cmd = { 'pinecone', 'lsp' },
+      root_dir = vim.fn.getcwd(),
+    })
+  end,
+})
+```
+
 ## Project Structure
 
 ```
 src/
-├── types.ts      # 共有型定義
-├── parser.ts     # import 解析・識別子収集
-├── renamer.ts    # リネームマップ構築・適用
-├── inliner.ts    # インライン展開ブロック生成
-├── resolver.ts   # モジュールパス解決（拡張子自動検索）
-├── builder.ts    # ビルドオーケストレーター
-├── linter.ts     # ビルド可否チェック・リネームプレビュー
-└── cli.ts        # CLI エントリポイント
+├── types.ts        # 共有型定義
+├── parser.ts       # import 解析・識別子収集
+├── renamer.ts      # リネームマップ構築・適用
+├── inliner.ts      # インライン展開ブロック生成
+├── resolver.ts     # モジュールパス解決（拡張子自動検索）
+├── builder.ts      # ビルドオーケストレーター
+├── linter.ts       # ビルド可否チェック・リネームプレビュー
+├── lsp.ts          # LSPサーバー（機能登録）
+├── lsp-server.ts   # LSPエントリポイント
+├── lsp/
+│   ├── definition.ts  # go-to-definition
+│   ├── hover.ts       # hover
+│   ├── references.ts  # references
+│   └── utils.ts       # 共通ユーティリティ
+└── cli.ts          # CLI エントリポイント
 ```
 
 ## License

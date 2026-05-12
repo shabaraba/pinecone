@@ -3,6 +3,7 @@ import { build } from './builder.js';
 import { lint } from './linter.js';
 import { DOCS } from './docs.js';
 import { startLsp } from './lsp.js';
+import { transpile } from './transpiler.js';
 
 const program = new Command();
 
@@ -46,5 +47,18 @@ program
   .command('lsp')
   .description('Start the PineScript LSP server (stdio)')
   .action(() => startLsp());
+
+program
+  .command('transpile <input>')
+  .description('Transpile PineScript to MQL5 EA format')
+  .option('-o, --output <file>', 'output file', 'output.mq5')
+  .action(async (input: string, options: { output: string }) => {
+    try {
+      await transpile({ input, output: options.output });
+    } catch (err) {
+      console.error('Transpile failed:', err instanceof Error ? err.message : err);
+      process.exit(1);
+    }
+  });
 
 program.parse();
